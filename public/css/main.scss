@@ -17,7 +17,6 @@ html {
 }
 
 body {
-  padding-top: 0px;
   margin-bottom: 75px;
 
   #containerPadding {
@@ -170,4 +169,15 @@ textarea {
 }
 .modal-heading h2{
 	color:#ffffff;
+}
+
+
+.bg{
+  background-image:url('/bosbackground.jpg');
+  padding:0px;
+  min-height:500px;
+  background-attachment:fixed;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
 }
