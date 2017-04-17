@@ -106,258 +106,68 @@ exports.postData = (req, res, next) => {
  * Passess a json object to #results.
  */
 exports.getData = (req, res) => {
-    var website = req.query.website;
-    var country = req.query.country;
-
     var parameters = {
         city: req.query.city,
         state: req.query.state,
         category: req.query.category
     };
 
-    if (country == 'United Kingdom') {
-        async.parallel([
-                // function(callback) {
-                //     scrapeYell(parameters, function(data) {
-                //         if (data.length > 0) {
-                //             console.log(`Yell: ${data.length} records ready for merging...`);
-                //             callback(null, data);
-                //             return;
-                //         }
-                //         callback();
-                //         return;
-                //     });
-                // }
-                function(callback) {
-                    scrapeKompass(parameters, function(data) {
-                        if (data.length > 0) {
-                            console.log(`Kompass: ${data.length} records ready for merging...`);
-                            callback(null, data);
-                            return;
-                        }
-                        callback();
+    async.parallel([
+            function(callback) {
+                scrapeYelp(parameters, function(data) {
+                    if (data.business || data.business.length > 0) {
+                        console.log(`Yelp: ${data.business.length} records ready for merging...`);
+                        callback(null, data.business);
                         return;
-                    });
-                }
-            ],
-            function(err, results) {
-                if (err) {
-                    console.log(`Error: ${err}.`);
+                    }
+                    callback();
+                    return;;
+                });
+            },
+            function(callback) {
+                scrapeYellowpages(parameters, function(data) {
+                    if (data.business || data.business.length > 0) {
+                        console.log(`Yellowpages: ${data.business.length} records ready for merging...`);
+                        callback(null, data.business);
+                        return;
+                    }
                     return;
-                }
-
-                var page = {
-                    business: []
-                };
-
-                console.log(`Merging ${results.length} results...`);
-                for (var i = 0; i < results.length; i++) {
-                    console.log(`Appending ${results[i].length} records to object...`);
-                    page.business = page.business.concat(results[i]);
-                }
-
-                console.log(`Parsing ${page.business.length} records to page...`);
-                res.json(page);
-            });
-
-    } else if (country == 'United States') {
-        async.parallel([
-                function(callback) {
-                    scrapeYelp(parameters, function(data) {
-                        if (data.business || data.business.length > 0) {
-                            console.log(`Yelp: ${data.business.length} records ready for merging...`);
-                            callback(null, data.business);
-                            return;
-                        }
-                        callback();
-                        return;;
-                    });
-                },
-                function(callback) {
-                    scrapeYellowpages(parameters, function(data) {
-                        if (data.business || data.business.length > 0) {
-                            console.log(`Yellowpages: ${data.business.length} records ready for merging...`);
-                            callback(null, data.business);
-                            return;
-                        }
+                });
+            },
+            function(callback) {
+                scrapeCitysearch(parameters, function(data) {
+                    if (data.business || data.business.length > 0) {
+                        console.log(`Yellowpages: ${data.business.length} records ready for merging...`);
+                        callback(null, data.business);
                         return;
-                    });
-                },
-                function(callback) {
-                    scrapeCitysearch(parameters, function(data) {
-                        if (data.business || data.business.length > 0) {
-                            console.log(`Yellowpages: ${data.business.length} records ready for merging...`);
-                            callback(null, data.business);
-                            return;
-                        }
-                        callback();
-                        return;
-                    });
-                }
-
-            ],
-            function(err, results) {
-                if (err) {
-                    console.log(`Error: ${err}.`);
-                    res.json(results);
+                    }
+                    callback();
                     return;
-                }
+                });
+            }
 
-                var page = {
-                    business: []
-                };
+        ],
+        function(err, results) {
+            if (err) {
+                console.log(`Error: ${err}.`);
+                res.json(results);
+                return;
+            }
 
-                console.log(`Merging ${results.length} results...`);
-                for (var i = 0; i < results.length; i++) {
-                    console.log(`Appending ${results[i].length} records to object...`);
-                    page.business = page.business.concat(results[i]);
-                }
+            var page = {
+                business: []
+            };
 
-                console.log(`Parsing ${page.business.length} records to page...`);
-                res.json(page);
-            });
-    }
+            console.log(`Merging ${results.length} results...`);
+            for (var i = 0; i < results.length; i++) {
+                console.log(`Appending ${results[i].length} records to object...`);
+                page.business = page.business.concat(results[i]);
+            }
+
+            console.log(`Parsing ${page.business.length} records to page...`);
+            res.json(page);
+        });
 };
-
-function scrapeYell(params, callback) {
-    var category = params.category.split(' ').join('+')
-    var city = params.city.split(' ').join('+');
-    var url = `https://www.yell.com/ucs/UcsSearchAction.do?keywords=${category}&location=${city}`;
-    console.log(`Scraping ${url}`);
-
-    var results = [];
-    var scraper = osmosis
-        .get(url)
-        .paginate('a.pagination--next')
-        .find('div.row.businessCapsule--title div.col-sm-24 a')
-        .delay(5000)
-        .follow('@href')
-        .delay(5000)
-        .set({
-            'name': 'h1.businessCapsule--title',
-            'phone': 'strong.businessCapsule--telephone',
-            'street_address': 'span[itemprop="streetAddress"]',
-            'address_locality': 'span[itemprop="addressLocality"]',
-            'address_region': 'span[itemprop="addressRegion"]',
-            'postal_code': 'span[itemprop="postalCode"]',
-            'category': 'span[itemprop="name"]',
-            'price_range': null,
-            'star_rating': 'span.histogram--score',
-            'review_count': 'span.reviewCount',
-            'website': 'div.businessCapsule--callToAction a@href',
-            'email': null,
-            'page_url': 'meta[name="og:url"]@content',
-            'scraper': null
-        })
-        .data(function(listing) {
-            listing.scraper = 'Yell';
-            console.log(listing);
-        })
-        .then(function(context, data) {
-          results.push(data);
-        })
-        .log(console.log)
-        .error(console.log)
-        .debug(console.log)
-        .done(function() {
-            callback(results);
-            console.log(`Passing ${results.length}...`)
-        })
-}
-
-// function scrapeMisterWhat(params, callback) {
-//     var category = params.category.split(' ').join('+')
-//     var city = params.city.split(' ').join('+');
-//     var url = `http://www.misterwhat.co.uk/search?what=${category}&where=${city}`;
-//     console.log(`Scraping ${url}`);
-//
-//     var results = [];
-//     var scraper = osmosis
-//         .get(url)
-//         // .paginate('ul.pagination li:nth-last-chlld(1) a')
-//         .find('a.compName')
-//         .delay(5000)
-//         .follow('@href')
-//         .delay(5000)
-//         .set({
-//             'name': 'span[itemprop="name"]',
-//             'phone': 'span[itemprop="telephone"]',
-//             'street_address': 'span[itemprop="streetAddress"]',
-//             'address_locality': 'a[itemprop="addressLocality"]',
-//             'address_region': 'span[itemprop="addressRegion"]',
-//             'postal_code': 'span[itemprop="postalCode"]',
-//             'category': null,
-//             'website': null,
-//             'email': null,
-//             'contact_person': 'div.col-sm-9',
-//             'contact_title': null,
-//             'employee_size': 'div.col-sm-9',
-//             'business_type': 'div.col-sm-9',
-//             'page_url': 'meta[name="og:url"]@content',
-//             'scraper': null
-//         })
-//         .data(function(listing) {
-//             listing.scraper = 'Misterwhat';
-//             console.log(listing);
-//         })
-//         .then(function(context, data) {
-//           results.push(data);
-//         })
-//         .log(console.log)
-//         .error(console.log)
-//         .debug(console.log)
-//         .done(function() {
-//             callback(results);
-//             console.log(`Passing ${results.length}...`)
-//         })
-// }
-
-function scrapeKompass(params, callback) {
-    var category = params.category.split(' ').join('+')
-    var city = params.city.split(' ').join('+');
-    var url = `http://gb.kompass.com/searchCompanies?acClassif=&localizationCode=GB&localizationLabel=United+Kingdom&localizationType=country&text=${category}&searchType=SUPPLIER`;
-    console.log(`Scraping ${url}`);
-
-    var results = [];
-    var scraper = osmosis
-        .get(url)
-        // .paginate('a.pagination--next')
-        .find('div.details h2 a')
-        .delay(5000)
-        .follow('@href')
-        .delay(5000)
-        .set({
-            'name': 'h1[itemprop="name"]',
-            'phone': 'a.phoneCompany input@value',
-            'street_address': 'span[itemprop="streetAddress"]',
-            'address_locality': 'span[itemprop="addressLocality"]',
-            'address_region': 'span[itemprop="addressRegion"]',
-            'postal_code': 'span[itemprop="postalCode"]',
-            'category': 'div.activities.extra p',
-            'website': 'a#website@href',
-            'email': null,
-            'contact_person': 'p.name',
-            'contact_title': 'p.fonction',
-            'employee_size': 'p.number',
-            'business_type': null,
-            'page_url': null,
-            'scraper': null
-        })
-        .data(function(listing) {
-            listing.scraper = 'Misterwhat';
-            console.log(listing);
-        })
-        .then(function(context, data) {
-          results.push(data);
-        })
-        .log(console.log)
-        .error(console.log)
-        .debug(console.log)
-        .done(function() {
-            callback(results);
-            console.log(`Passing ${results.length}...`)
-        })
-}
 
 function scrapeYellowpages(params, callback) {
     var category = params.category.split(' ').join('+')

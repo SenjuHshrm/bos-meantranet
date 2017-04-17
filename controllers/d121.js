@@ -67,7 +67,7 @@ exports.postData = (req, res, next) => {
  * Passess a json object to #results.
  */
 exports.getData = (req, res) => {
-    var parameters = {
+    let parameters = {
         city: req.query.city,
         category: req.query.category
     };
@@ -92,12 +92,12 @@ exports.getData = (req, res) => {
                 return;
             }
 
-            var page = {
+            let page = {
                 business: []
             };
 
             console.log(`Merging ${results.length} results...`);
-            for (var i = 0; i < results.length; i++) {
+            for (let i = 0; i < results.length; i++) {
                 console.log(`Appending ${results[i].length} records to object...`);
                 page.business = page.business.concat(results[i]);
             }
@@ -108,13 +108,13 @@ exports.getData = (req, res) => {
 };
 
 function scrapeYell(params, callback) {
-    var category = params.category.split(' ').join('+')
-    var city = params.city.split(' ').join('+');
-    var url = `https://www.yell.com/ucs/UcsSearchAction.do?keywords=${category}&location=${city}`;
+    let category = params.category.split(' ').join('+')
+    let city = params.city.split(' ').join('+');
+    let url = `https://www.yell.com/ucs/UcsSearchAction.do?keywords=${category}&location=${city}`;
     console.log(`Scraping ${url}`);
 
-    var results = [];
-    var scraper = osmosis
+    let results = [];
+    let scraper = osmosis
         // .proxy([
         //     '104.128.120.187:1080',
         //     '173.255.143.184:80',
@@ -151,13 +151,13 @@ function scrapeYell(params, callback) {
                 data.scraper = 'Yell';
                 data.phone = formatPhoneUK(data.phone);
 
-                var parameters = {
+                let parameters = {
                     name: data.name,
                     location: data.address_locality
                 };
 
                 scrapeKompass(parameters, function(info) {
-                    var merge = _.merge(data, info[0]);
+                    let merge = _.merge(data, info[0]);
                     results.push(merge);
                 })
 
@@ -177,10 +177,10 @@ function scrapeKompass(params, callback) {
     name = params.name.split(' ').join('+');
     location = (params.location != undefined) ? params.location.split(' ').join('+') : '';
 
-    var url = `http://gb.kompass.com/searchCompanies?acClassif=&localizationCode=${location}&localizationLabel=${location}&localizationType=townName&text=${name}&searchType=COMPANYNAME`;
-    var results = [];
+    let url = `http://gb.kompass.com/searchCompanies?acClassif=&localizationCode=${location}&localizationLabel=${location}&localizationType=townName&text=${name}&searchType=COMPANYNAME`;
+    let results = [];
 
-    var scraper = osmosis
+    let scraper = osmosis
         .get(url)
         .find('div.details h2 a:nth-child(1)')
         .delay(1000)
