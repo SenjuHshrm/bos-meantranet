@@ -20,11 +20,6 @@ const expressStatusMonitor = require('express-status-monitor');
 const sass = require('node-sass-middleware');
 const multer = require('multer');
 
-/**
- * Custom module dependencies.
- */
-const osmosis = require('osmosis');
-const Xray = require('x-ray');
 
 const upload = multer({
     dest: path.join(__dirname, 'uploads')
@@ -51,8 +46,6 @@ const contactController = require('./controllers/contact');
 const applicantController = require('./controllers/applicant');
 const adminController = require('./controllers/admin');
 const internController = require('./controllers/intern');
-const crawlerController = require('./controllers/crawler');
-const d121Controller = require('./controllers/d121');
 
 /**
  * API keys and Passport configuration.
@@ -197,21 +190,6 @@ app.get('/applicant/form', passportConfig.isAuthenticated, applicantController.g
  * Intern Tools routes.
  */
 app.get('/intern/consequence', internController.getConsequence);
-
-/**
- * Crawler routes.
- */
-app.route('/crawler')
-    .get(crawlerController.getCrawler)
-app.route('/searching')
-    .get(crawlerController.getData)
-    .post(crawlerController.postData)
-
-app.route('/d121')
-    .get(d121Controller.getCrawler)
-app.route('/search/d121')
-    .get(d121Controller.getData)
-    .post(d121Controller.postData)
 
 /**
  * Admin routes.
